@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:latest
+    container_name: postgres-db
+    restart: always
+    environment:
+      POSTGRES_DB: mydatabase
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+    ports:
+      - "5432:5432"
+    networks:
+      - mynetwork
+
+  backend:
+    build: ./backend
+    container_name: app1back
+    depends_on:
+      - db
+    environment:
+      DBHOST: db
+      DBNAME: mydatabase
+      DBUSERNAME: myuser
+      DBPASSWD: mypassword
+    ports:
+      - "8087:8087"  # Backend running on 8087
+    networks:
+      - mynetwork
+
+  frontend:
+    build: ./frontend
+    container_name: app1front
+    depends_on:
+      - backend
+    ports:
+      - "8088:80"  # Frontend running on 8088
+    networks:
+      - mynetwork
+
+networks:
+  mynetwork:

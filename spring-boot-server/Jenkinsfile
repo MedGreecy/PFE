@@ -1,0 +1,68 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_CREDENTIALS = 'Med'
+        PROJECT_DIR = "${WORKSPACE}"
+      
+    }
+
+    stages {
+         stage('Checkout') {
+            steps {
+                // Checkout the repository
+                git branch: 'master',
+                    url: 'https://gitlab.com/MedGreecy/pfe.git',
+                    credentialsId: 'Med' // Your GitLab credentials ID in Jenkins
+            }
+        }
+
+        stage('Login to Docker Hub') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS, usernameVariable: 'mghr', passwordVariable: 'PASSWORD_VAR')]) {
+                        bat "docker login -u ${mghr} -p ${PASSWORD_VAR}"
+                    }
+                }
+            }
+        }
+
+        stage('Spring Install and run') {
+            steps {
+                script {
+                    bat 'cd spring-boot-server && mvn clean install -Dmaven.test.skip=true'
+                     
+                   
+                }
+            }
+        }
+        
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    bat 'cd spring-boot-server && docker build -t mghr/backendpfe .'
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                script {
+                    bat 'docker push mghr/backendpfe'
+                }
+            }
+        }
+    }
+    post {
+        always {
+            echo "Pipeline completed"
+        }
+        success {
+            echo "Build and Docker operations were successful!"
+        }
+        failure {
+            echo "There was an error in the pipeline."
+        }
+    }
+}
